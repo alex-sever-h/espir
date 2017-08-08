@@ -14,16 +14,19 @@
 
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
+#include <IRsend.h>
 #include <IRutils.h>
 
 // An IR detector/demodulator is connected to GPIO pin 14(D5 on a NodeMCU
 // board).
 uint16_t RECV_PIN = 2;
+uint16_t SEND_PIN = 5;
 // As this program is a special purpose capture/decoder, let us use a larger
 // than normal buffer so we can handle Air Conditioner remote codes.
 uint16_t CAPTURE_BUFFER_SIZE = 1024;
 
 IRrecv irrecv(RECV_PIN, CAPTURE_BUFFER_SIZE);
+IRsend irsend(SEND_PIN);
 
 decode_results results;  // Somewhere to store the results
 irparams_t save;         // A place to copy the interrupt state while decoding.
@@ -42,6 +45,7 @@ void setup() {
   }
 
   irrecv.enableIRIn();  // Start the receiver
+  irsend.begin();
 }
 
 // Display encoding type
@@ -187,15 +191,32 @@ void dumpCode(decode_results *results) {
   }
 }
 
+
+uint8_t something[] = {0x23, 0xCB, 0x26, 0x01, 0x00, // never changes
+                       0x24, 0x03, 0x06, 0x22, 0x00, 0x00, 0x03, 0x04,
+                       0x6B }; // CRC
+
+uint16_t rawData[227] = {3846, 1392,  618, 1138,  616, 1138,  616, 442,  590, 442,  590, 422,  612, 1136,  614, 444,  590, 444,  590, 1140,  614, 1138,  616, 442,  588, 1138,  616, 444,  588, 442,  590, 1138,  614, 1138,  620, 442,  590, 1140,  614, 1136,  616, 444,  590, 442,  590, 1136,  616, 440,  592, 420,  614, 1136,  616, 442,  590, 442,  590, 442,  588, 442,  590, 444,  590, 442,  588, 424,  614, 440,  590, 442,  590, 442,  590, 442,  588, 442,  590, 442,  590, 442,  590, 444,  592, 442,  590, 444,  590, 1138,  614, 442,  590, 442,  590, 1136,  616, 440,  590, 424,  612, 1138,  614, 1138,  616, 444,  590, 442,  590, 440,  590, 442,  590, 442,  590, 444,  592, 442,  592, 1136,  618, 1136,  616, 442,  590, 442,  590, 442,  592, 440,  592, 422,  612, 442,  592, 1138,  616, 420,  612, 440,  592, 442,  590, 1138,  616, 442,  590, 444,  592, 442,  588, 444,  590, 442,  588, 442,  590, 442,  590, 440,  592, 418,  614, 424,  612, 442,  592, 440,  590, 440,  592, 440,  592, 440,  592, 442,  590, 442,  590, 424,  612, 1136,  618, 1138,  616, 440,  592, 442,  590, 440,  592, 442,  590, 442,  590, 422,  614, 440,  592, 442,  590, 1138,  616, 440,  592, 440,  590, 440,  592, 442,  590, 444,  592, 1136,  618, 1136,  616, 440,  628, 1102,  650, 406,  592, 1136,  616, 1136,  654, 406,  618};  // YAMATO 0
+
+
 // The repeating section of the code
 //
 void loop() {
   // Check if the IR code has been received.
+#if 0
   if (irrecv.decode(&results, &save)) {
     dumpInfo(&results);           // Output the results
+#if 1
     dumpRaw(&results);            // Output the results in RAW format
     dumpCode(&results);           // Output the results as source code
+#endif
     Serial.println("");           // Blank line between entries
   }
-  //Serial.println("nada");           // Blank line between entries
+#endif
+
+  delay(2000);  // Wait a bit for the serial connection to be establised.
+  Serial.println("send YAMATO");
+  //irsend.sendRaw(rawData, 227, 38);  // Send a raw data capture at 38kHz.
+
+  irsend.sendYamato(something);
 }
